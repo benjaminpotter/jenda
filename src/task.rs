@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use tabled::Tabled;
 use uuid::Uuid;
 
-#[derive(Tabled)]
+#[derive(Clone, Debug, Tabled)]
 pub struct Task {
     id: Uuid,
     name: String,
@@ -26,5 +26,11 @@ impl Task {
 
     pub fn get_completed(&self) -> &bool {
         &self.completed
+    }
+}
+
+impl std::cmp::PartialEq for Task {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }

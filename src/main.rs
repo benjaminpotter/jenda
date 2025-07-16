@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use jenda::{Database, JendaError, Task};
+use jenda::{Database, JendaError, Task, VecDatabase};
 use tabled::Table;
 
 #[derive(Parser)]
@@ -28,7 +28,7 @@ enum Commands {
 
 fn main() {
     let cli = JendaCli::parse();
-    let mut db = Database::new();
+    let mut db = VecDatabase::new();
     let result = match &cli.command {
         Some(Commands::Add(opts)) => add(&mut db, opts),
         Some(Commands::List(opts)) => list(&db, opts),
@@ -57,11 +57,11 @@ impl Into<Task> for &AddOptions {
 #[derive(Args)]
 struct ListOptions;
 
-fn add(db: &mut Database, opts: &AddOptions) -> Result<(), JendaError> {
+fn add(db: &mut VecDatabase, opts: &AddOptions) -> Result<(), JendaError> {
     db.add_task(opts.into())
 }
 
-fn list(db: &Database, _opts: &ListOptions) -> Result<(), JendaError> {
+fn list(db: &VecDatabase, _opts: &ListOptions) -> Result<(), JendaError> {
     let tasks = db.tasks()?;
     let table = Table::new(tasks);
     println!("{}", table);

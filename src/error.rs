@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Debug)]
 pub enum JendaError {}
 
 impl fmt::Display for JendaError {
