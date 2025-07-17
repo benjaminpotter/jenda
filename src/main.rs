@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand};
-use jenda::{Database, JendaError, Task, VecDatabase};
+use jenda::{Database, JendaError, Task};
 use tabled::Table;
+use uuid::Uuid;
 
 #[derive(Parser)]
 struct JendaCli {
@@ -20,7 +21,7 @@ enum Commands {
     List(ListOptions),
 
     /// Display info for a single task.
-    Info,
+    Info(InfoOptions),
 
     /// Manage configuration options.
     Config,
@@ -28,17 +29,20 @@ enum Commands {
 
 fn main() {
     let cli = JendaCli::parse();
-    let mut db = VecDatabase::new();
-    let result = match &cli.command {
-        Some(Commands::Add(opts)) => add(&mut db, opts),
-        Some(Commands::List(opts)) => list(&db, opts),
-        None => Ok(()),
-        _ => todo!(),
-    };
-
-    match result {
-        Ok(_) => {}
+    match run(cli) {
+        Ok(output) => println!("{}", output),
         Err(e) => println!("command failed: {}", e),
+    }
+}
+
+fn run(cli: JendaCli) -> Result<String, JendaError> {
+    let mut db = Database::open("testing.db")?;
+    match &cli.command {
+        Some(Commands::Add(opts)) => add(&mut db, &opts),
+        Some(Commands::List(opts)) => list(&db, &opts),
+        Some(Commands::Info(opts)) => info(&db, &opts),
+        None => Ok(String::new()),
+        _ => todo!(),
     }
 }
 
@@ -54,17 +58,25 @@ impl Into<Task> for &AddOptions {
     }
 }
 
+fn add(db: &mut Database, opts: &AddOptions) -> Result<String, JendaError> {
+    db.insert(opts.into())?;
+    Ok(String::new())
+}
+
 #[derive(Args)]
 struct ListOptions;
 
-fn add(db: &mut VecDatabase, opts: &AddOptions) -> Result<(), JendaError> {
-    db.add_task(opts.into())
+fn list(db: &Database, _opts: &ListOptions) -> Result<String, JendaError> {
+    Ok(String::new())
 }
 
-fn list(db: &VecDatabase, _opts: &ListOptions) -> Result<(), JendaError> {
-    let tasks = db.tasks()?;
-    let table = Table::new(tasks);
-    println!("{}", table);
+#[derive(Args)]
+struct InfoOptions {
+    id: Uuid,
+}
 
-    Ok(())
+fn info(db: &Database, opts: &InfoOptions) -> Result<String, JendaError> {
+    let task = db.query_id(&opts.id)?;
+    let table = Table::new(vec![task]);
+    Ok(table.to_string())
 }
