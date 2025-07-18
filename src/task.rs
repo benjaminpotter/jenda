@@ -1,4 +1,3 @@
-use crate::JendaError;
 use chrono::prelude::*;
 use tabled::Tabled;
 use uuid::Uuid;
@@ -7,16 +6,16 @@ use uuid::Uuid;
 pub struct Task {
     id: Uuid,
     name: String,
-    completed: bool,
+    complete: bool,
     timestamp: DateTime<Utc>,
 }
 
 impl Task {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, complete: bool) -> Self {
         Task {
             id: Uuid::new_v4(),
             name: name.to_string(),
-            completed: false,
+            complete,
             timestamp: Utc::now(),
         }
     }
@@ -29,8 +28,8 @@ impl Task {
         &self.name
     }
 
-    pub fn get_completed(&self) -> &bool {
-        &self.completed
+    pub fn get_complete(&self) -> &bool {
+        &self.complete
     }
 
     pub fn get_timestamp(&self) -> &DateTime<Utc> {
@@ -49,12 +48,47 @@ impl From<(Uuid, String, bool, DateTime<Utc>)> for Task {
         Self {
             id: tuple.0,
             name: tuple.1,
-            completed: tuple.2,
+            complete: tuple.2,
             timestamp: tuple.3,
         }
     }
 }
 
-pub struct Tasks {
-    inner: Vec<Result<Task, JendaError>>,
+/// TaskGroup { name: None, complete: None } matches all tasks.
+pub struct TaskGroup {
+    name: Option<String>,
+    complete: Option<bool>,
+}
+
+impl TaskGroup {
+    pub fn new() -> Self {
+        Self {
+            name: None,
+            complete: None,
+        }
+    }
+
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
+    }
+
+    pub fn with_complete(mut self, complete: bool) -> Self {
+        self.complete = Some(complete);
+        self
+    }
+
+    pub fn contains(&self, task: &Task) -> bool {
+        let matches_name = match self.name {
+            Some(ref name) => task.name.contains(name),
+            None => true,
+        };
+
+        let matches_complete = match self.complete {
+            Some(complete) => complete == task.complete,
+            None => true,
+        };
+
+        matches_name && matches_complete
+    }
 }

@@ -1,7 +1,13 @@
 use clap::{Args, Parser, Subcommand};
-use jenda::{Database, JendaError, Task};
+use jenda::{Database, JendaError, Task, TaskGroup};
 use tabled::Table;
 use uuid::Uuid;
+
+// jenda add -n "cargo update"
+// jenda complete -n "cargo update"
+// jenda list --incomplete
+// jenda list
+// jenda list --filter "complete=false"
 
 #[derive(Parser)]
 struct JendaCli {
@@ -17,7 +23,7 @@ enum Commands {
     /// Mark a task as complete.
     Complete,
 
-    /// Display a list of all tasks.
+    /// List tasks.
     List(ListOptions),
 
     /// Display info for a single task.
@@ -50,11 +56,14 @@ fn run(cli: JendaCli) -> Result<String, JendaError> {
 struct AddOptions {
     #[arg(short, long)]
     name: String,
+
+    #[arg(short, long)]
+    complete: bool,
 }
 
 impl Into<Task> for &AddOptions {
     fn into(self) -> Task {
-        Task::new(&self.name)
+        Task::new(&self.name, self.complete)
     }
 }
 
@@ -64,10 +73,33 @@ fn add(db: &mut Database, opts: &AddOptions) -> Result<String, JendaError> {
 }
 
 #[derive(Args)]
-struct ListOptions;
+struct ListOptions {
+    /// Retains tasks that contain `name` as a substring of `task.name`.
+    #[arg(short, long)]
+    name: Option<String>,
 
-fn list(db: &Database, _opts: &ListOptions) -> Result<String, JendaError> {
-    Ok(String::new())
+    /// Retains tasks that have `task.complete` set to `false`.
+    #[arg(short, long)]
+    incomplete: bool,
+}
+
+fn list(db: &Database, opts: &ListOptions) -> Result<String, JendaError> {
+    let mut group = TaskGroup::new();
+
+    if let Some(name) = &opts.name {
+        group = group.with_name(name.clone());
+    }
+
+    if opts.incomplete {
+        // If the user includes the incomplete flag (its true) then we are
+        // looking for tasks without the complete flag (its false).
+        group = group.with_complete(false);
+    }
+
+    let tasks = db.query(&group)?;
+    let table = Table::new(tasks);
+
+    Ok(table.to_string())
 }
 
 #[derive(Args)]

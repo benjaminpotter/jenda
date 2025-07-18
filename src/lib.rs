@@ -4,4 +4,4 @@ mod task;
 
 pub use db::Database;
 pub use error::JendaError;
-pub use task::{Task, Tasks};
+pub use task::{Task, TaskGroup};
