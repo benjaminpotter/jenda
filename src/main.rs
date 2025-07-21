@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use jenda::{Database, JendaError, Task, TaskGroup};
+use std::{fs, path::PathBuf};
 use tabled::Table;
 use uuid::Uuid;
 
@@ -42,7 +43,23 @@ fn main() {
 }
 
 fn run(cli: JendaCli) -> Result<String, JendaError> {
-    let mut db = Database::open("testing.db")?;
+    let mut path = match std::env::var("XDG_DATA_HOME") {
+        Ok(dir) => PathBuf::from(dir),
+        Err(_) => [
+            &std::env::var("HOME").expect("set HOME env var"),
+            ".local",
+            "share",
+        ]
+        .iter()
+        .collect(),
+    };
+
+    path.push("jenda");
+    fs::create_dir_all(&path).expect("failed to create app dir under XDG_DATA_HOME");
+
+    path.push("task.db");
+    let mut db = Database::open(path)?;
+
     match &cli.command {
         Some(Commands::Add(opts)) => add(&mut db, &opts),
         Some(Commands::List(opts)) => list(&db, &opts),
