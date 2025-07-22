@@ -1,7 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use jenda::{Database, JendaError, Task, TaskGroup};
 use std::{fs, path::PathBuf};
-use tabled::Table;
 use uuid::Uuid;
 
 // jenda add -n "cargo update"
@@ -21,17 +20,14 @@ enum Commands {
     /// Add a new task.
     Add(AddOptions),
 
-    /// Mark a task as complete.
-    Complete,
+    /// Mark all tasks in group as complete.
+    Ct(CtOptions),
 
-    /// List tasks.
+    /// List all tasks in a task group.
     List(ListOptions),
 
     /// Display info for a single task.
     Info(InfoOptions),
-
-    /// Manage configuration options.
-    Config,
 }
 
 fn main() {
@@ -62,10 +58,10 @@ fn run(cli: JendaCli) -> Result<String, JendaError> {
 
     match &cli.command {
         Some(Commands::Add(opts)) => add(&mut db, &opts),
+        Some(Commands::Ct(opts)) => ct(&mut db, &opts),
         Some(Commands::List(opts)) => list(&db, &opts),
         Some(Commands::Info(opts)) => info(&db, &opts),
         None => Ok(String::new()),
-        _ => todo!(),
     }
 }
 
@@ -90,6 +86,29 @@ fn add(db: &mut Database, opts: &AddOptions) -> Result<String, JendaError> {
 }
 
 #[derive(Args)]
+struct CtOptions {
+    /// Retains tasks that contain `name` as a substring of `task.name`.
+    #[arg(short, long)]
+    name: Option<String>,
+}
+
+fn ct(db: &Database, opts: &CtOptions) -> Result<String, JendaError> {
+    let group = TaskGroup::new(opts.name.clone(), Some(false));
+
+    // Query db for matching tasks.
+    let tasks = db.query(&group)?;
+    let cnt = tasks.len();
+
+    // Complete task and update db.
+    for mut task in tasks {
+        task.complete();
+        db.update(task)?;
+    }
+
+    Ok(format!("marked {} tasks as complete", cnt))
+}
+
+#[derive(Args)]
 struct ListOptions {
     /// Retains tasks that contain `name` as a substring of `task.name`.
     #[arg(short, long)]
@@ -101,11 +120,7 @@ struct ListOptions {
 }
 
 fn list(db: &Database, opts: &ListOptions) -> Result<String, JendaError> {
-    let mut group = TaskGroup::new();
-
-    if let Some(name) = &opts.name {
-        group = group.with_name(name.clone());
-    }
+    let mut group = TaskGroup::new(opts.name.clone(), None);
 
     if opts.incomplete {
         // If the user includes the incomplete flag (its true) then we are
@@ -113,10 +128,11 @@ fn list(db: &Database, opts: &ListOptions) -> Result<String, JendaError> {
         group = group.with_complete(false);
     }
 
-    let tasks = db.query(&group)?;
-    let table = Table::new(tasks);
-
-    Ok(table.to_string())
+    Ok(db
+        .query(&group)?
+        .into_iter()
+        .map(|task| format!("{}\n", task))
+        .collect())
 }
 
 #[derive(Args)]
@@ -126,6 +142,5 @@ struct InfoOptions {
 
 fn info(db: &Database, opts: &InfoOptions) -> Result<String, JendaError> {
     let task = db.query_id(&opts.id)?;
-    let table = Table::new(vec![task]);
-    Ok(table.to_string())
+    Ok(format!("{}", task))
 }

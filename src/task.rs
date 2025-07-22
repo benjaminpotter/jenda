@@ -1,8 +1,8 @@
 use chrono::prelude::*;
-use tabled::Tabled;
+use std::fmt;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Tabled)]
+#[derive(Clone, Debug)]
 pub struct Task {
     id: Uuid,
     name: String,
@@ -35,6 +35,10 @@ impl Task {
     pub fn get_timestamp(&self) -> &DateTime<Utc> {
         &self.timestamp
     }
+
+    pub fn complete(&mut self) {
+        self.complete = true;
+    }
 }
 
 impl std::cmp::PartialEq for Task {
@@ -54,6 +58,16 @@ impl From<(Uuid, String, bool, DateTime<Utc>)> for Task {
     }
 }
 
+impl fmt::Display for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}, {}, {}, {}",
+            self.id, self.name, self.complete, self.timestamp
+        )
+    }
+}
+
 /// TaskGroup { name: None, complete: None } matches all tasks.
 pub struct TaskGroup {
     name: Option<String>,
@@ -61,11 +75,8 @@ pub struct TaskGroup {
 }
 
 impl TaskGroup {
-    pub fn new() -> Self {
-        Self {
-            name: None,
-            complete: None,
-        }
+    pub fn new(name: Option<String>, complete: Option<bool>) -> Self {
+        Self { name, complete }
     }
 
     pub fn with_name(mut self, name: String) -> Self {

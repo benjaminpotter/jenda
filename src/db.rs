@@ -96,4 +96,22 @@ impl Database {
             .filter(|task| group.contains(&task))
             .collect())
     }
+
+    pub fn update(&self, task: Task) -> Result<(), JendaError> {
+        let cnt = self
+            .conn
+            .prepare("UPDATE task SET name=?2, complete=?3 WHERE id = ?1")
+            .map_err(|e| JendaError::Database(format!("failed to prepare statement: {}", e)))?
+            .execute((
+                task.get_id().to_string(),
+                task.get_name(),
+                task.get_complete(),
+            ))
+            .map_err(|e| JendaError::Database(format!("failed to execute statement: {}", e)))?;
+
+        // task.id should be unique.
+        assert_eq!(cnt, 1);
+
+        Ok(())
+    }
 }
