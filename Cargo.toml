@@ -1,7 +1,17 @@
 [package]
 name = "jenda"
+authors = ["Ben Potter bp@benpot.com"]
 version = "0.1.0"
 edition = "2024"
+
+readme = "README.md"
+description = "A command line tool for task tracking."
+repository = "https://github.com/benjaminpotter/jenda.git"
+
+keywords = ["todo", "agenda", "task"]
+categories = ["command-line-utilities"]
+
+license = "GPL-3.0-or-later"
 
 [dependencies]
 chrono = "0.4.41"
