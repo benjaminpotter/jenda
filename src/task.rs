@@ -24,12 +24,39 @@ impl Task {
         &self.id
     }
 
+    /// Returns the first 4 bytes of the task's id.
+    ///
+    /// The abbreviated task id is easier to work with than its un-abbreviated
+    /// counterpart.
+    /// It is inspired by abbreviated commit hashes produced by git.
+    /// Using the abbreviated task id increases the risk of collision.
+    pub fn abrv_id(&self) -> String {
+        let mut simple = self.id.simple().to_string();
+        simple.truncate(8);
+        simple.shrink_to_fit();
+
+        simple
+    }
+
     pub fn get_name(&self) -> &str {
         &self.name
     }
 
     pub fn get_complete(&self) -> &bool {
         &self.complete
+    }
+
+    /// Returns a short string that represents the complete status of the task.
+    ///
+    /// | Flag | Description |
+    /// +------+-------------+
+    /// | COM  | Complete    |
+    /// | INC  | Incomplete  |
+    pub fn complete_flag(&self) -> &'static str {
+        match self.complete {
+            true => "COM",
+            false => "INC",
+        }
     }
 
     pub fn get_timestamp(&self) -> &DateTime<Utc> {
@@ -62,8 +89,11 @@ impl fmt::Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {}",
-            self.id, self.name, self.complete, self.timestamp
+            "{} {} {} {}\n",
+            self.get_timestamp().with_timezone(&Local).format("%c"),
+            self.abrv_id(),
+            self.complete_flag(),
+            self.get_name()
         )
     }
 }

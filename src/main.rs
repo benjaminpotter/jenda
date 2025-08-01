@@ -3,12 +3,6 @@ use jenda::{Database, JendaError, Task, TaskGroup};
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
 
-// jenda add -n "cargo update"
-// jenda complete -n "cargo update"
-// jenda list --incomplete
-// jenda list
-// jenda list --filter "complete=false"
-
 #[derive(Parser)]
 struct JendaCli {
     #[command(subcommand)]
@@ -128,11 +122,10 @@ fn list(db: &Database, opts: &ListOptions) -> Result<String, JendaError> {
         group = group.with_complete(false);
     }
 
-    Ok(db
-        .query(&group)?
-        .into_iter()
-        .map(|task| format!("{}\n", task))
-        .collect())
+    let mut tasks = db.query(&group)?;
+    tasks.sort_by_key(|task| *task.get_timestamp());
+
+    Ok(tasks.into_iter().map(|task| format!("{}", task)).collect())
 }
 
 #[derive(Args)]
